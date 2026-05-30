@@ -16,3 +16,4 @@ dependencies:
     - py3Dmol
     - stmol
     - joblib
+    - ipython_genutils
