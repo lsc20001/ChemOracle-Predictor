@@ -1,18 +1,18 @@
 name: chemoracle
 channels:
   - conda-forge
-  - defaults
 dependencies:
   - python=3.9
-  - pip
-  - streamlit
-  - pandas
-  - numpy
-  - scikit-learn
-  - plotly
-  - mendeleev
-  - morfeus-ml==0.7.2
   - xtb-python
-  - py3Dmol
-  - stmol
-  - joblib
+  - pip
+  - pip:
+    - streamlit
+    - pandas
+    - numpy
+    - scikit-learn
+    - plotly
+    - mendeleev
+    - morfeus-ml==0.7.2
+    - py3Dmol
+    - stmol
+    - joblib
