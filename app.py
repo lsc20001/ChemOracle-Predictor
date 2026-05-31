@@ -15,10 +15,24 @@ os.environ["OMP_NUM_THREADS"] = "1"
 
 from feature_pipeline import extract_all_16_features
 
-# 1. UI Upgrade: Premium Page Config
+# 1. UI Upgrade: Premium Page Config (Must be the first Streamlit command)
 st.set_page_config(page_title="Catalyst Oracle Pro", layout="wide")
 
-# 2. UI Upgrade: Custom Header
+# ==========================================
+# 🔒 Academic Passcode Lock (SCI & Competition Protection)
+# ==========================================
+st.markdown("<h3 style='text-align: center; color: #2E86C1; margin-top: 50px;'>🔒 Access Restricted</h3>", unsafe_allow_html=True)
+user_pwd = st.text_input("⚠️ Enter Academic Passcode to Initialize Compute Engine:", type="password", key="pwd")
+
+if user_pwd != "Chem2026":
+    if user_pwd:
+        st.error("❌ Access Denied. Research data is protected. Please contact the author for access.")
+    else:
+        st.info("ℹ️ Please enter the passcode above to unlock the Catalyst Activity Oracle.")
+    st.stop() 
+# ==========================================
+
+# 2. UI Upgrade: Custom Header (Displays only after correct passcode)
 st.markdown("""
     <h1 style='text-align: center; color: #2E86C1; padding-bottom: 20px;'>
         Catalyst Activity Oracle (Edge Computing Node)
