@@ -15,24 +15,8 @@ os.environ["OMP_NUM_THREADS"] = "1"
 
 from feature_pipeline import extract_all_16_features
 
-# 1. UI Upgrade: Premium Page Config (Must be the first Streamlit command)
 st.set_page_config(page_title="Catalyst Oracle Pro", layout="wide")
 
-# ==========================================
-# 🔒 Academic Passcode Lock (SCI & Competition Protection)
-# ==========================================
-st.markdown("<h3 style='text-align: center; color: #2E86C1; margin-top: 50px;'>🔒 Access Restricted</h3>", unsafe_allow_html=True)
-user_pwd = st.text_input("⚠️ Enter Academic Passcode to Initialize Compute Engine:", type="password", key="pwd")
-
-if user_pwd != "Chem2026":
-    if user_pwd:
-        st.error("❌ Access Denied. Research data is protected. Please contact the author for access.")
-    else:
-        st.info("ℹ️ Please enter the passcode above to unlock the Catalyst Activity Oracle.")
-    st.stop() 
-# ==========================================
-
-# 2. UI Upgrade: Custom Header (Displays only after correct passcode)
 st.markdown("""
     <h1 style='text-align: center; color: #2E86C1; padding-bottom: 20px;'>
         Catalyst Activity Oracle (Edge Computing Node)
@@ -43,7 +27,6 @@ st.markdown("""
     <hr>
 """, unsafe_allow_html=True)
 
-# 3. Input Layout
 col_m, col_o, col_u = st.columns([1, 1, 2])
 with col_m:
     user_metal = st.text_input("Target Metal:", "Mn")
@@ -54,6 +37,25 @@ with col_u:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
+feature_name_mapping = {
+    'ox': 'OX',
+    'Debye': 'DP',
+    'bo1_2': 'MBO',
+    'HOMO-LUMO': 'HLG',
+    'ip': 'IP',
+    'charges1': 'MQ',
+    'B_1': 'B1',
+    'B_5': 'B5',
+    'P_int2': 'LMP',
+    'D_P': 'MP',
+    'ar_r': 'MAR',
+    'BV': 'BV',
+    'EA_Mt': 'MEA',
+    'NCA_N': 'NCN',
+    'LT': 'TL',
+    'NCA_C': 'NCC'
+}
+
 if uploaded_file:
     try:
         file_content = uploaded_file.getvalue().decode("utf-8", errors="ignore")
@@ -63,7 +65,6 @@ if uploaded_file:
             final_cols = ['ox', 'Debye', 'bo1_2', 'HOMO-LUMO', 'ip', 'charges1', 'B_1', 'B_5', 'P_int2', 'D_P', 'ar_r', 'BV', 'EA_Mt', 'NCA_N', 'LT', 'NCA_C']
             df = pd.DataFrame([features])[final_cols]
             
-            # Feature Scaling for Analytics
             TRAIN_MEANS = np.array([2.211765, 3.478055, 0.734077, 0.023137, 10.926487, 0.016713, 4.2422, 8.005451, 43.31487, 65.825882, 241.194118, 0.815912, 8.953459, 2.262353, 8.191765, 1.198824])
             TRAIN_STDS  = np.array([0.645238, 1.086614, 0.148806, 0.018338, 0.509622, 0.365975, 0.495551, 1.14842, 9.15284, 10.168939, 16.116085, 0.0524, 8.350466, 0.831367, 11.881164, 1.387931])
             df_scaled = (df - TRAIN_MEANS) / TRAIN_STDS
@@ -74,11 +75,8 @@ if uploaded_file:
             st.success("Pipeline Execution Complete. Data Secured.")
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # --- DASHBOARD VISUALS ---
-            # Top Row: 3D Viewer and Gauge Chart
             top_col1, top_col2 = st.columns([1, 1])
             
-            # Visual 1: Interactive 3D Molecular Viewer
             with top_col1:
                 st.markdown("<h4 style='text-align: center; color: #555555;'>3D Molecular Structure</h4>", unsafe_allow_html=True)
                 view = py3Dmol.view(width=500, height=350)
@@ -88,7 +86,6 @@ if uploaded_file:
                 view.zoomTo()
                 showmol(view, height=350, width=500)
 
-            # Visual 2: Premium Gauge Chart
             with top_col2:
                 fig_gauge = go.Figure(go.Indicator(
                     mode = "gauge+number",
@@ -112,9 +109,10 @@ if uploaded_file:
 
             st.markdown("<hr>", unsafe_allow_html=True)
 
-            # Bottom Row: Z-Score Deviation Bar Chart
+            ui_cols = [feature_name_mapping.get(col, col) for col in final_cols]
+
             plot_df = pd.DataFrame({
-                'Feature': final_cols,
+                'Feature': ui_cols,
                 'Deviation (Z-Score)': df_scaled.iloc[0].values
             })
             fig_bar = px.bar(
@@ -127,9 +125,10 @@ if uploaded_file:
             fig_bar.update_layout(height=400, margin=dict(l=20, r=20, t=50, b=20))
             st.plotly_chart(fig_bar, use_container_width=True)
 
-            # Raw Data Expander
             with st.expander("View Raw Physical Descriptors Matrix"):
-                st.dataframe(df.style.highlight_max(axis=1))
+                display_df = df.copy()
+                display_df.columns = ui_cols
+                st.dataframe(display_df)
             
     except Exception as e:
         error_details = traceback.format_exc()
