@@ -15,53 +15,102 @@ os.environ["OMP_NUM_THREADS"] = "1"
 
 from feature_pipeline import extract_all_16_features
 
+def auto_align_geometry(xyz_string, target_metal):
+    lines = [line.strip() for line in xyz_string.strip().split('\n') if line.strip()]
+    if len(lines) < 3:
+        raise ValueError("Invalid XYZ file structure.")
+        
+    num_atoms = lines[0]
+    comment = lines[1]
+    atom_records = lines[2:]
+    
+    parsed_atoms = []
+    for record in atom_records:
+        tokens = record.split()
+        if len(tokens) >= 4:
+            parsed_atoms.append({
+                'element': tokens[0],
+                'x': float(tokens[1]),
+                'y': float(tokens[2]),
+                'z': float(tokens[3]),
+                'raw_line': record
+            })
+            
+    metal_atom = None
+    metal_index = -1
+    for idx, atom in enumerate(parsed_atoms):
+        if atom['element'].upper() == target_metal.upper():
+            metal_atom = atom
+            metal_index = idx
+            break
+            
+    if metal_atom is None:
+        raise ValueError(f"Target metal '{target_metal}' not found in the uploaded file.")
+        
+    pool_without_metal = parsed_atoms[:metal_index] + parsed_atoms[metal_index+1:]
+    
+    closest_h_atom = None
+    closest_h_index = -1
+    min_distance = float('inf')
+    
+    for idx, atom in enumerate(pool_without_metal):
+        if atom['element'].upper() == 'H':
+            distance = np.sqrt(
+                (metal_atom['x'] - atom['x'])**2 +
+                (metal_atom['y'] - atom['y'])**2 +
+                (metal_atom['z'] - atom['z'])**2
+            )
+            if distance < min_distance:
+                min_distance = distance
+                closest_h_atom = atom
+                closest_h_index = idx
+                
+    ordered_records = [metal_atom['raw_line']]
+    if closest_h_atom is not None:
+        ordered_records.append(closest_h_atom['raw_line'])
+        for idx, atom in enumerate(pool_without_metal):
+            if idx != closest_h_index:
+                ordered_records.append(atom['raw_line'])
+    else:
+        for atom in pool_without_metal:
+            ordered_records.append(atom['raw_line'])
+            
+    return f"{num_atoms}\n{comment}\n" + "\n".join(ordered_records)
+
 st.set_page_config(page_title="Catalyst Oracle Pro", layout="wide")
 
 st.markdown("""
     <h1 style='text-align: center; color: #2E86C1; padding-bottom: 20px;'>
-        Catalyst Activity Oracle (Edge Computing Node)
+        Prediction of Transition Metal-Hydride Dissociation Energies using RF Model
     </h1>
-    <p style='text-align: center; color: gray;'>
-        Secure Local Inference | No Geometry Data Leaves Your Device
-    </p>
     <hr>
 """, unsafe_allow_html=True)
 
 col_m, col_o, col_u = st.columns([1, 1, 2])
 with col_m:
-    user_metal = st.text_input("Target Metal:", "Mn")
+    user_metal = st.selectbox("Step 1: Target Metal", options=["Cr", "Mn", "Fe", "Co", "Ni"], index=1)
 with col_o:
-    user_ox = st.number_input("Oxidation State (ox):", value=2, step=1)
+    user_ox = st.selectbox("Step 2: Oxidation State", options=[1, 2, 3], index=1)
 with col_u:
-    uploaded_file = st.file_uploader("Upload Proprietary XYZ:", type=["xyz"])
+    uploaded_file = st.file_uploader("Step 3: Upload Geometry (XYZ)", type=["xyz"])
 
 st.markdown("<br>", unsafe_allow_html=True)
 
 feature_name_mapping = {
-    'ox': 'OX',
-    'Debye': 'DP',
-    'bo1_2': 'MBO',
-    'HOMO-LUMO': 'HLG',
-    'ip': 'IP',
-    'charges1': 'MQ',
-    'B_1': 'B1',
-    'B_5': 'B5',
-    'P_int2': 'LMP',
-    'D_P': 'MP',
-    'ar_r': 'MAR',
-    'BV': 'BV',
-    'EA_Mt': 'MEA',
-    'NCA_N': 'NCN',
-    'LT': 'TL',
-    'NCA_C': 'NCC'
+    'ox': 'OX', 'Debye': 'DP', 'bo1_2': 'MBO', 'HOMO-LUMO': 'HLG',
+    'ip': 'IP', 'charges1': 'MQ', 'B_1': 'B1', 'B_5': 'B5',
+    'P_int2': 'LMP', 'D_P': 'MP', 'ar_r': 'MAR', 'BV': 'BV',
+    'EA_Mt': 'MEA', 'NCA_N': 'NCN', 'LT': 'TL', 'NCA_C': 'NCC'
 }
 
 if uploaded_file:
     try:
-        file_content = uploaded_file.getvalue().decode("utf-8", errors="ignore")
-        with st.spinner("Executing Local Quantum Physics Pipeline..."):
+        raw_content = uploaded_file.getvalue().decode("utf-8", errors="ignore")
+        
+        with st.spinner("Executing alignment and pipeline inference..."):
+            processed_xyz = auto_align_geometry(raw_content, user_metal)
             
-            features = extract_all_16_features(file_content, user_metal, user_ox)
+            features = extract_all_16_features(processed_xyz, user_metal, user_ox)
             final_cols = ['ox', 'Debye', 'bo1_2', 'HOMO-LUMO', 'ip', 'charges1', 'B_1', 'B_5', 'P_int2', 'D_P', 'ar_r', 'BV', 'EA_Mt', 'NCA_N', 'LT', 'NCA_C']
             df = pd.DataFrame([features])[final_cols]
             
@@ -72,15 +121,15 @@ if uploaded_file:
             model = joblib.load("rf_model.pkl.gz") 
             prediction = model.predict(df)[0]
 
-            st.success("Pipeline Execution Complete. Data Secured.")
+            st.success("Pipeline Inference Completed Successfully.")
             st.markdown("<br>", unsafe_allow_html=True)
             
             top_col1, top_col2 = st.columns([1, 1])
             
             with top_col1:
-                st.markdown("<h4 style='text-align: center; color: #555555;'>3D Molecular Structure</h4>", unsafe_allow_html=True)
+                st.markdown("<h4 style='text-align: center; color: #555555;'>Aligned 3D Molecular Structure</h4>", unsafe_allow_html=True)
                 view = py3Dmol.view(width=500, height=350)
-                view.addModel(file_content, "xyz")
+                view.addModel(processed_xyz, "xyz")
                 view.setStyle({'stick': {'radius': 0.15}, 'sphere': {'scale': 0.3}})
                 view.setBackgroundColor('#FAFAFA')
                 view.zoomTo()
@@ -132,5 +181,5 @@ if uploaded_file:
             
     except Exception as e:
         error_details = traceback.format_exc()
-        st.error("Pipeline Fault:")
+        st.error(f"Pipeline Fault: {str(e)}")
         st.code(error_details, language="python")
