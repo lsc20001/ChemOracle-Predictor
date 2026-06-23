@@ -1,19 +1,30 @@
 import os
 import math
 import tempfile
-import pandas as pd
 from mendeleev import element
 from morfeus import BuriedVolume, Dispersion, Sterimol, read_xyz, XTB
 
-COVALENT_RADII = {"Sc": 1.70, "Ti": 1.60, "V": 1.53, "Cr": 1.39, "Mn": 1.50, "Fe": 1.42, "Co": 1.38, "Ni": 1.24, "Cu": 1.32, "Zn": 1.22, "Y": 1.90, "Zr": 1.75, "Nb": 1.64, "Mo": 1.54, "Ru": 1.46, "Rh": 1.42, "Pd": 1.39, "Ag": 1.45, "Cd": 1.44, "Hf": 1.75, "Ta": 1.70, "W": 1.62, "Re": 1.51, "Os": 1.44, "Ir": 1.41, "Pt": 1.36, "Au": 1.36, "H": 0.31, "C": 0.73, "N": 0.71, "O": 0.66, "P": 1.07, "S": 1.05, "Cl": 1.02, "Br": 1.20, "I": 1.39}
-ATOMIC_NUMBERS = {"H": 1, "C": 6, "N": 7, "O": 8, "P": 15, "S": 16, "Cl": 17, "Br": 35, "I": 53}
+COVALENT_RADII = {
+    "Sc": 1.70, "Ti": 1.60, "V": 1.53, "Cr": 1.39, "Mn": 1.50, "Fe": 1.42, 
+    "Co": 1.38, "Ni": 1.24, "Cu": 1.32, "Zn": 1.22, "Y": 1.90, "Zr": 1.75, 
+    "Nb": 1.64, "Mo": 1.54, "Ru": 1.46, "Rh": 1.42, "Pd": 1.39, "Ag": 1.45, 
+    "Cd": 1.44, "Hf": 1.75, "Ta": 1.70, "W": 1.62, "Re": 1.51, "Os": 1.44, 
+    "Ir": 1.41, "Pt": 1.36, "Au": 1.36, "Hg": 1.32, "H": 0.31, "C": 0.73, 
+    "N": 0.71, "O": 0.66, "P": 1.07, "S": 1.05, "Cl": 1.02, "Br": 1.20, "I": 1.39
+}
 
-METAL_PROPS = {
-    "Co": {"D_P": 55.0, "ar_r": 233.0, "EA_Mt": 15.24},
-    "Cr": {"D_P": 82.0, "ar_r": 233.0, "EA_Mt": 15.36},
-    "Fe": {"D_P": 62.0, "ar_r": 237.0, "EA_Mt": 3.76},
-    "Mn": {"D_P": 68.0, "ar_r": 242.0, "EA_Mt": 0.0},
-    "Ni": {"D_P": 49.0, "ar_r": 299.0, "EA_Mt": 26.66}
+ATOMIC_NUMBERS = {
+    "H": 1, "C": 6, "N": 7, "O": 8, "P": 15, "S": 16, 
+    "Cl": 17, "Br": 35, "I": 53
+}
+
+EA_DICT = {
+    "Sc": 4.34, "Ti": 1.82, "V": 12.11, "Cr": 15.36, "Mn": 0.00,
+    "Fe": 3.76, "Co": 15.24, "Ni": 26.66, "Cu": 28.32, "Zn": 0.00,
+    "Y": 7.08, "Zr": 9.82, "Nb": 20.59, "Mo": 17.20, "Tc": 12.68,
+    "Ru": 24.21, "Rh": 26.22, "Pd": 12.84, "Ag": 30.02, "Cd": 0.00,
+    "Hf": 0.00, "Ta": 7.43, "W": 18.79, "Re": 3.46, "Os": 25.37,
+    "Ir": 36.09, "Pt": 49.07, "Au": 53.25, "Hg": 0.00
 }
 
 def get_l_trans(atoms, target_metal):
@@ -45,7 +56,6 @@ def extract_all_16_features(file_content, target_metal, user_ox):
         parsed_atoms = [{'ele': p.split()[0], 'x': float(p.split()[1]), 'y': float(p.split()[2]), 'z': float(p.split()[3])} for p in atoms if p.strip()]
 
         elements, coordinates = read_xyz(tmp_path)
-        
         xtb = XTB(elements, coordinates)
         
         raw_bo = xtb.get_bond_order(1, 2)
@@ -64,7 +74,7 @@ def extract_all_16_features(file_content, target_metal, user_ox):
         sterimol = Sterimol(elements, coordinates, 1, 2)
         
         nca_c_count, nca_n_count = 0, 0
-        r1 = COVALENT_RADII.get(target_metal, 0) 
+        r1 = COVALENT_RADII.get(target_metal.capitalize(), 0) 
         metal_coord = parsed_atoms[0]
         for target in parsed_atoms[1:]:
             ele2 = target['ele']
@@ -76,7 +86,17 @@ def extract_all_16_features(file_content, target_metal, user_ox):
                 if ele2 == 'C': nca_c_count += 1
                 elif ele2 == 'N': nca_n_count += 1
 
-        props = METAL_PROPS.get(target_metal, {"D_P": 0.0, "ar_r": 0.0, "EA_Mt": 0.0})
+        try:
+            mendeleev_element = element(target_metal.capitalize())
+            dp_val = mendeleev_element.dipole_polarizability
+            arr_val = mendeleev_element.atomic_radius_rahm
+            if dp_val is None: dp_val = 0.0
+            if arr_val is None: arr_val = 0.0
+        except Exception:
+            dp_val = 0.0
+            arr_val = 0.0
+            
+        ea_val = EA_DICT.get(target_metal.capitalize(), 0.0)
 
         features = {
             'ox': user_ox,  
@@ -88,10 +108,10 @@ def extract_all_16_features(file_content, target_metal, user_ox):
             'B_1': round(sterimol.B_1_value, 4),
             'B_5': round(sterimol.B_5_value, 4), 
             'P_int2': round(disp.atom_p_int[1], 4),
-            'D_P': props["D_P"], 
-            'ar_r': props["ar_r"], 
+            'D_P': round(dp_val, 4), 
+            'ar_r': round(arr_val, 4), 
             'BV': round(bv.fraction_buried_volume, 6),
-            'EA_Mt': props["EA_Mt"], 
+            'EA_Mt': ea_val, 
             'NCA_N': nca_n_count, 
             'LT': get_l_trans(parsed_atoms, target_metal),
             'NCA_C': nca_c_count
