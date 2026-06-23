@@ -13,7 +13,8 @@ from stmol import showmol
 current_dir = os.path.dirname(os.path.abspath(__file__))
 os.environ["OMP_NUM_THREADS"] = "1"
 
-from feature_pipeline import extract_all_16_features
+# Import from the pipeline file
+from feature_pipeline import extract_all_16_features, EA_DICT
 
 def auto_align_geometry(xyz_string, target_metal):
     lines = [line.strip() for line in xyz_string.strip().split('\n') if line.strip()]
@@ -88,9 +89,10 @@ st.markdown("""
 
 col_m, col_o, col_u = st.columns([1, 1, 2])
 with col_m:
-    user_metal = st.selectbox("Step 1: Target Metal", options=["Cr", "Mn", "Fe", "Co", "Ni"], index=1)
+    all_metals = list(EA_DICT.keys())
+    user_metal = st.selectbox("Step 1: Target Metal", options=all_metals, index=all_metals.index("Fe"))
 with col_o:
-    user_ox = st.selectbox("Step 2: Oxidation State", options=[1, 2, 3], index=1)
+    user_ox = st.selectbox("Step 2: Oxidation State", options=[1, 2, 3, 4, 5, 6], index=1)
 with col_u:
     uploaded_file = st.file_uploader("Step 3: Upload Geometry (XYZ)", type=["xyz"])
 
@@ -107,7 +109,7 @@ if uploaded_file:
     try:
         raw_content = uploaded_file.getvalue().decode("utf-8", errors="ignore")
         
-        with st.spinner("Executing alignment and pipeline inference..."):
+        with st.spinner("Executing alignment and dynamic pipeline inference..."):
             processed_xyz = auto_align_geometry(raw_content, user_metal)
             
             features = extract_all_16_features(processed_xyz, user_metal, user_ox)
@@ -121,7 +123,7 @@ if uploaded_file:
             model = joblib.load("rf_model.pkl.gz") 
             prediction = model.predict(df)[0]
 
-            st.success("Pipeline Inference Completed Successfully.")
+            st.success("Feature Extraction and Pipeline Inference Completed Successfully.")
             st.markdown("<br>", unsafe_allow_html=True)
             
             top_col1, top_col2 = st.columns([1, 1])
