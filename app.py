@@ -116,6 +116,7 @@ if uploaded_file:
             features = extract_all_16_features(processed_xyz, user_metal, user_ox)
             final_cols = ['ox', 'Debye', 'bo1_2', 'HOMO-LUMO', 'ip', 'charges1', 'B_1', 'B_5', 'P_int2', 'D_P', 'ar_r', 'BV', 'EA_Mt', 'NCA_N', 'LT', 'NCA_C']
             df = pd.DataFrame([features])[final_cols]
+            df = df.fillna(0.0)
             
             # Z-Score Calculation
             TRAIN_MEANS = np.array([2.211765, 3.478055, 0.734077, 0.023137, 10.926487, 0.016713, 4.2422, 8.005451, 43.31487, 65.825882, 241.194118, 0.815912, 8.953459, 2.262353, 8.191765, 1.198824])
