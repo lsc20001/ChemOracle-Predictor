@@ -4,10 +4,11 @@ import tempfile
 from mendeleev import element
 from morfeus import BuriedVolume, Dispersion, Sterimol, read_xyz, XTB
 
+# 已补充缺失的 "Tc": 1.47
 COVALENT_RADII = {
     "Sc": 1.70, "Ti": 1.60, "V": 1.53, "Cr": 1.39, "Mn": 1.50, "Fe": 1.42, 
     "Co": 1.38, "Ni": 1.24, "Cu": 1.32, "Zn": 1.22, "Y": 1.90, "Zr": 1.75, 
-    "Nb": 1.64, "Mo": 1.54, "Ru": 1.46, "Rh": 1.42, "Pd": 1.39, "Ag": 1.45, 
+    "Nb": 1.64, "Mo": 1.54, "Tc": 1.47, "Ru": 1.46, "Rh": 1.42, "Pd": 1.39, "Ag": 1.45, 
     "Cd": 1.44, "Hf": 1.75, "Ta": 1.70, "W": 1.62, "Re": 1.51, "Os": 1.44, 
     "Ir": 1.41, "Pt": 1.36, "Au": 1.36, "Hg": 1.32, "H": 0.31, "C": 0.73, 
     "N": 0.71, "O": 0.66, "P": 1.07, "S": 1.05, "Cl": 1.02, "Br": 1.20, "I": 1.39
