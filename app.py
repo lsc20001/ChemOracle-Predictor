@@ -98,7 +98,7 @@ with st.sidebar:
     st.markdown("💡 **Tip**: Navigate tabs in the main window for Mechanistic Analysis (SHAP), Applicability Domain checks, and Raw Descriptors.")
 
 # --- 2. 主屏幕 (Main Canvas) ---
-st.markdown("<h2 style='color: #2E86C1; margin-top: -20px;'>Transition Metal-Hydride Thermochemistry Oracle</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='color: #2E86C1; margin-top: -20px;'>Prediction of Transition Metal-Hydride Dissociation Energies</h2>", unsafe_allow_html=True)
 
 feature_name_mapping = {
     'ox': 'OX', 'Debye': 'DP', 'bo1_2': 'MBO', 'HOMO-LUMO': 'HLG',
